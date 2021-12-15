@@ -119,7 +119,7 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
                     Log.d(TAG, "onReceive: updated imageView");
 
                     Log.d(TAG, "onReceive: about to send to slack");
-                    sendFileOnSlack(imageFile);
+                    sendImage(imageFile);
 
                     // move temi to its initial location
                     robot.goTo(initialLocationName);
@@ -136,45 +136,10 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
         imageView.setImageBitmap(myBitmap);
     }
 
-    private void sendFileOnSlack(File file) {
-        String serverURL = "https://slack.com/api/files.upload";
-        String userToken = BuildConfig.SLACK_USER_TOKEN;
+    // don't need slack, change to something else
+    private void sendImage(File file) {
         try {
-            OkHttpClient client = new OkHttpClient();
-
-            RequestBody requestBody = new MultipartBody.Builder().setType(MultipartBody.FORM)
-                    .addFormDataPart("file", file.getName(),
-                            RequestBody.create(MediaType.parse("image/jpg"), file))
-                    .addFormDataPart("initial_comment", String.format("Here's the snap of %s you asked for!", selectedLocation))
-                    .addFormDataPart("channels", "whiteboard-messages")
-                    .build();
-
-            Request request = new Request.Builder()
-                    .url(serverURL)
-                    .post(requestBody)
-                    .addHeader("Authorization", "Bearer " + userToken)
-                    .build();
-
-            client.newCall(request).enqueue(new Callback() {
-                @Override
-                public void onFailure(final Call call, final IOException e) {
-                    // Handle the error
-                    Log.d(TAG, "onFailure: http post failed");
-                    e.printStackTrace();
-                }
-
-                @Override
-                public void onResponse(final Call call, final Response response) {
-                    if (!response.isSuccessful()) {
-                        // Handle the error
-                        Log.d(TAG, "onResponse: not successful");
-                        Log.d(TAG, "onResponse: " + response);
-                    }
-                    // Upload successful
-                    Log.d(TAG, "onResponse: success!");
-                    Log.d(TAG, "onResponse: " + response);
-                }
-            });
+            // send image somewhere (Box? something simple)
         } catch (Exception ex) {
             // Handle the error
         }
@@ -197,17 +162,17 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
     public void onRobotReady(boolean isReady) {
         // get the list of locations from the robot and populate the spinner
         List<String> locations = robot.getLocations();
-        List<String> whiteboardLocs = new ArrayList<>();
+        List<String> conferenceLocs = new ArrayList<>();
         for (String location : locations) {
-            if (location.startsWith("whiteboard")) {
-                whiteboardLocs.add(location);
+            if (location.startsWith("conference")) { // create the locations on the Temi
+                conferenceLocs.add(location);
             }
         }
-        Collections.sort(whiteboardLocs);
-        Log.v(TAG, "locations = " + whiteboardLocs);
+        Collections.sort(conferenceLocs);
+        Log.v(TAG, "locations = " + conferenceLocs);
 
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(
-                this, android.R.layout.simple_spinner_item, whiteboardLocs);
+                this, android.R.layout.simple_spinner_item, conferenceLocs);
 
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         whiteboardSpinner.setAdapter(adapter);
@@ -306,58 +271,59 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
         startService(cameraServiceIntent);
     }
 
-    @SuppressLint("NewApi")
-    private void waitForMqttMessages() {
-        final String host = BuildConfig.HIVEMQ_BROKER;
-        final String username = BuildConfig.HIVEMQ_USER;
-        final String password = BuildConfig.HIVEMQ_PASSWORD;
+    // for the lambda fxns, don't need
+    // @SuppressLint("NewApi")
+    // private void waitForMqttMessages() {
+    //     final String host = BuildConfig.HIVEMQ_BROKER;
+    //     final String username = BuildConfig.HIVEMQ_USER;
+    //     final String password = BuildConfig.HIVEMQ_PASSWORD;
 
-        //create an MQTT client
-        final Mqtt5BlockingClient client = MqttClient.builder()
-                .useMqttVersion5()
-                .serverHost(host)
-                .serverPort(8883)
-                .sslWithDefaultConfig()
-                .buildBlocking();
+    //     //create an MQTT client
+    //     final Mqtt5BlockingClient client = MqttClient.builder()
+    //             .useMqttVersion5()
+    //             .serverHost(host)
+    //             .serverPort(8883)
+    //             .sslWithDefaultConfig()
+    //             .buildBlocking();
 
-        //connect to HiveMQ Cloud with TLS and username/pw
-        client.connectWith()
-                .simpleAuth()
-                .username(username)
-                .password(UTF_8.encode(password))
-                .applySimpleAuth()
-                .send();
+    //     //connect to HiveMQ Cloud with TLS and username/pw
+    //     client.connectWith()
+    //             .simpleAuth()
+    //             .username(username)
+    //             .password(UTF_8.encode(password))
+    //             .applySimpleAuth()
+    //             .send();
 
-        Log.d(TAG, "waitForMqttMessages: Connected successfully");
+    //     Log.d(TAG, "waitForMqttMessages: Connected successfully");
 
-        //subscribe to the topic "my/test/topic"
-        client.subscribeWith()
-                .topicFilter(subscriptionTopic)
-                .send();
+    //     //subscribe to the topic "my/test/topic"
+    //     client.subscribeWith()
+    //             .topicFilter(subscriptionTopic)
+    //             .send();
 
-        // set a callback that is called when a message is received (using the async API style)
-        client.toAsync().publishes(ALL, publish -> {
-            String payload = UTF_8.decode(publish.getPayload().get()).toString();
-            Log.d(TAG, "waitForMqttMessages: Received message: " + payload);
+    //     // set a callback that is called when a message is received (using the async API style)
+    //     client.toAsync().publishes(ALL, publish -> {
+    //         String payload = UTF_8.decode(publish.getPayload().get()).toString();
+    //         Log.d(TAG, "waitForMqttMessages: Received message: " + payload);
 
-            try {
-                JSONObject sensorData = new JSONObject(payload);
-                if(sensorData.has("temi_request")) {
-                    selectedLocation = sensorData.getString("location");
+    //         try {
+    //             JSONObject sensorData = new JSONObject(payload);
+    //             if(sensorData.has("temi_request")) {
+    //                 selectedLocation = sensorData.getString("location");
 
-                    // we pick the location, and default to the wideangle lens with a head angle of 18
-                    moveAndClickPicture(selectedLocation, 18, 1);
-                } else {
-                    Log.d(TAG, "waitForMqttMessages: received invalid request!");
-                }
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
+    //                 // we pick the location, and default to the wideangle lens with a head angle of 18
+    //                 moveAndClickPicture(selectedLocation, 18, 1);
+    //             } else {
+    //                 Log.d(TAG, "waitForMqttMessages: received invalid request!");
+    //             }
+    //         } catch (JSONException e) {
+    //             e.printStackTrace();
+    //         }
 
-            // disconnect the client after a message was received
-            // client.disconnect();
-        });
-    }
+    //         // disconnect the client after a message was received
+    //         // client.disconnect();
+    //     });
+    // }
 
 //    @SuppressLint("NewApi")
 //    private void useHiveMqLocal() {
