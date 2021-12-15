@@ -128,7 +128,7 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
         };
 
         registerReceiver(updateUIReceiver, filter);
-        waitForMqttMessages();
+        // waitForMqttMessages();
     }
 
     private void updateImageView(File imageFile) {

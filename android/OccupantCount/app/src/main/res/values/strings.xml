@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">Whiteboard Snap</string>
-    <string name="choose_whiteboard_location">Whiteboard Location</string>
+    <string name="choose_whiteboard_location">Room Location</string>
     <string name="camera">Camera</string>
 </resources>
