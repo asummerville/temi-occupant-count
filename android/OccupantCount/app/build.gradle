@@ -15,9 +15,6 @@ plugins {
 apply plugin: 'com.android.application'
 apply plugin: 'com.github.sgtsilvio.gradle.android-retrofix'
 
-def apikeyPropertiesFile = rootProject.file("apikey.properties")
-def apikeyProperties = new Properties()
-apikeyProperties.load(new FileInputStream(apikeyPropertiesFile))
 
 android {
     compileSdk 30
@@ -31,11 +28,6 @@ android {
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
-        // load key/value pairs from the apikey.properties file
-        buildConfigField("String", "HIVEMQ_BROKER", apikeyProperties['HIVEMQ_BROKER'])
-        buildConfigField("String", "HIVEMQ_USER", apikeyProperties['HIVEMQ_USER'])
-        buildConfigField("String", "HIVEMQ_PASSWORD", apikeyProperties['HIVEMQ_PASSWORD'])
-        buildConfigField("String", "SLACK_USER_TOKEN", apikeyProperties['SLACK_USER_TOKEN'])
     }
 
     buildTypes {
