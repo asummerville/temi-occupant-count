@@ -20,7 +20,7 @@ android {
     compileSdk 30
 
     defaultConfig {
-        applicationId "com.linklab.whiteboardsnap"
+        applicationId "com.linklab.occupantcount"
         minSdk 23
         targetSdk 23
         versionCode 1

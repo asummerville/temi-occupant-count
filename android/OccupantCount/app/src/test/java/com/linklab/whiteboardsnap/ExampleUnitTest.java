@@ -1,4 +1,4 @@
-package com.linklab.whiteboardsnap;
+package com.linklab.occupantcount;
 
 import org.junit.Test;
 

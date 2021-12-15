@@ -1,5 +1,5 @@
 // reference: https://stackoverflow.com/questions/43031207/take-photo-in-service-using-camera2-api
-package com.linklab.whiteboardsnap;
+package com.linklab.occupantcount;
 
 import android.Manifest;
 import android.app.Service;

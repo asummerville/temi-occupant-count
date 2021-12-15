@@ -1,4 +1,4 @@
-package com.linklab.whiteboardsnap;
+package com.linklab.occupantcount;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -53,11 +53,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class MainActivity extends AppCompatActivity implements OnRobotReadyListener {
     private Robot robot;
-    private Spinner whiteboardSpinner, cameraSpinner;
+    private Spinner whiteSpinner, cameraSpinner;
     private Button goButton, exitButton;
     private ImageView imageView;
     private EditText angleInput;
-    static final String TAG = "WhiteBoard";
+    static final String TAG = "OccupantCount";
 
     String selectedLocation = "";
     String initialLocationName = "starting position";
@@ -72,7 +72,7 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
 
         robot = Robot.getInstance();
 
-        whiteboardSpinner = findViewById(R.id.spinner);
+        occupantSpinner = findViewById(R.id.spinner);
         cameraSpinner = findViewById(R.id.spinner_camera);
         goButton = findViewById(R.id.go_button);
         exitButton = findViewById(R.id.exit_button);
@@ -175,14 +175,14 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
                 this, android.R.layout.simple_spinner_item, conferenceLocs);
 
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        whiteboardSpinner.setAdapter(adapter);
+        occupantSpinner.setAdapter(adapter);
 
         goButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Log.d(TAG, "user pressed go button");
 
-                selectedLocation = whiteboardSpinner.getSelectedItem().toString();
+                selectedLocation = occupantSpinner.getSelectedItem().toString();
                 int angle = Integer.parseInt(angleInput.getText().toString());
                 int cameraId = cameraSpinner.getSelectedItemPosition();
                 moveAndClickPicture(selectedLocation, angle, cameraId);
