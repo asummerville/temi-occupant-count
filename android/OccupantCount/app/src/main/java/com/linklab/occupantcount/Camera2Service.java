@@ -174,7 +174,7 @@ public class Camera2Service extends Service {
         ByteBuffer buffer;
         byte[] bytes;
         boolean success = false;
-        File file = new File(Environment.getExternalStorageDirectory() + "/Pictures/image.jpg");
+        File file = new File(Environment.getExternalStorageDirectory() + "/Pictures/image.jpg"); // figure out what base dir is
         FileOutputStream output = null;
 
         if (image.getFormat() == ImageFormat.JPEG) {

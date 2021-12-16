@@ -53,7 +53,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class MainActivity extends AppCompatActivity implements OnRobotReadyListener {
     private Robot robot;
-    private Spinner whiteSpinner, cameraSpinner;
+    private Spinner occupantSpinner, cameraSpinner;
     private Button goButton, exitButton;
     private ImageView imageView;
     private EditText angleInput;
@@ -65,13 +65,16 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
 
     private static final String subscriptionTopic = "temi-data";
 
+    // tablet UI for testing purposes or manual execution
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // instantiate robot
         robot = Robot.getInstance();
 
+        // UI elements
         occupantSpinner = findViewById(R.id.spinner);
         cameraSpinner = findViewById(R.id.spinner_camera);
         goButton = findViewById(R.id.go_button);
@@ -98,6 +101,7 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
         cameraSpinner.setAdapter(adapter);
         cameraSpinner.setSelection(1); // default to wide angle
 
+        // check if temi has permission to use camera, read, write, etc
         checkPermissionsOrRequest();
 
         // listen for broadcast messages sent out by Camera2Service when captured images are ready
@@ -128,18 +132,21 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
         };
 
         registerReceiver(updateUIReceiver, filter);
-        // waitForMqttMessages();
+
+        // ***this is where the lambda listener method was -- have to create some method that automates/schedules the process
+        scheduledCall();
     }
+
 
     private void updateImageView(File imageFile) {
         Bitmap myBitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath());
         imageView.setImageBitmap(myBitmap);
     }
 
-    // don't need slack, change to something else
+    // send/save image
     private void sendImage(File file) {
         try {
-            // send image somewhere (Box? something simple)
+            // save img to filesystem (specific folder -- currently just save as Pictures/image.jpg)?
         } catch (Exception ex) {
             // Handle the error
         }
@@ -157,6 +164,7 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
         robot.removeOnRobotReadyListener(this);
     }
 
+    // main method: gets iaq locations, runs 'moveAndClickPicture' method with UI inputs
     @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
     public void onRobotReady(boolean isReady) {
@@ -164,7 +172,7 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
         List<String> locations = robot.getLocations();
         List<String> conferenceLocs = new ArrayList<>();
         for (String location : locations) {
-            if (location.startsWith("conference")) { // create the locations on the Temi
+            if (location.startsWith("iaq")) { // (create the locations on the Temi)
                 conferenceLocs.add(location);
             }
         }
@@ -186,6 +194,12 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
                 int angle = Integer.parseInt(angleInput.getText().toString());
                 int cameraId = cameraSpinner.getSelectedItemPosition();
                 moveAndClickPicture(selectedLocation, angle, cameraId);
+
+                // run for all iaq locations
+//                for (String location: conferenceLocs) {
+//                    moveAndClickPicture(location, angle, cameraId);
+//                }
+
             }
         });
     }
@@ -196,6 +210,8 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
         receivingImages = true;
 
         // store current location so that we can go back to where we were
+        // ^* when commanding the robot to go to multiple locations, we don't want it to go back to
+        // its original position after every picture it takes...
         robot.saveLocation(initialLocationName);
         Log.d(TAG, "moveAndClickPicture: temporarily saved the current location");
 
@@ -214,6 +230,8 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
                     robot.tiltAngle(headAngle);
                     Log.d(TAG, "now clicking picture.");
                     clickPicture(cameraId); // the camera service sends a broadcast once done
+
+                    // below else if: we won't want robot going back to initial position (until all pictures are taken)
                 } else if(currentLoc.equals(initialLocationName) && status.equals("complete")) {
                     // when we've reached back to original position, remove the temporarily saved initial location
                     Log.d(TAG, "reached original position");
@@ -261,6 +279,7 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
         return true;
     }
 
+    // take picture using Camera2Service class
     private void clickPicture(int cameraId) {
         Intent cameraServiceIntent = new Intent(MainActivity.this, Camera2Service.class);
 
@@ -271,92 +290,32 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
         startService(cameraServiceIntent);
     }
 
-    // for the lambda fxns, don't need
-    // @SuppressLint("NewApi")
-    // private void waitForMqttMessages() {
-    //     final String host = BuildConfig.HIVEMQ_BROKER;
-    //     final String username = BuildConfig.HIVEMQ_USER;
-    //     final String password = BuildConfig.HIVEMQ_PASSWORD;
+    // ***fill
+    private void scheduledCall() {
+        // scheduled call of the method (every 30 min-1 hr) that captures every iaq location
+        // not sure the best way to do this -- might have to use some async API
 
-    //     //create an MQTT client
-    //     final Mqtt5BlockingClient client = MqttClient.builder()
-    //             .useMqttVersion5()
-    //             .serverHost(host)
-    //             .serverPort(8883)
-    //             .sslWithDefaultConfig()
-    //             .buildBlocking();
+        // *use some async API/listener that when true runs the below code
 
-    //     //connect to HiveMQ Cloud with TLS and username/pw
-    //     client.connectWith()
-    //             .simpleAuth()
-    //             .username(username)
-    //             .password(UTF_8.encode(password))
-    //             .applySimpleAuth()
-    //             .send();
+            // get the list of iaq locations from the robot
+            List<String> locations = robot.getLocations();
+            List<String> conferenceLocs = new ArrayList<>();
+            for (String location : locations) {
+                if (location.startsWith("iaq")) { // (create the locations on the Temi)
+                    conferenceLocs.add(location);
+                }
+            }
+            Collections.sort(conferenceLocs);
+            Log.v(TAG, "locations = " + conferenceLocs);
 
-    //     Log.d(TAG, "waitForMqttMessages: Connected successfully");
+            // run for all iaq locations
+            for (String location: conferenceLocs) {
+                moveAndClickPicture(location, 18, 1); // change angle
+            }
 
-    //     //subscribe to the topic "my/test/topic"
-    //     client.subscribeWith()
-    //             .topicFilter(subscriptionTopic)
-    //             .send();
 
-    //     // set a callback that is called when a message is received (using the async API style)
-    //     client.toAsync().publishes(ALL, publish -> {
-    //         String payload = UTF_8.decode(publish.getPayload().get()).toString();
-    //         Log.d(TAG, "waitForMqttMessages: Received message: " + payload);
+    }
 
-    //         try {
-    //             JSONObject sensorData = new JSONObject(payload);
-    //             if(sensorData.has("temi_request")) {
-    //                 selectedLocation = sensorData.getString("location");
 
-    //                 // we pick the location, and default to the wideangle lens with a head angle of 18
-    //                 moveAndClickPicture(selectedLocation, 18, 1);
-    //             } else {
-    //                 Log.d(TAG, "waitForMqttMessages: received invalid request!");
-    //             }
-    //         } catch (JSONException e) {
-    //             e.printStackTrace();
-    //         }
 
-    //         // disconnect the client after a message was received
-    //         // client.disconnect();
-    //     });
-    // }
-
-//    @SuppressLint("NewApi")
-//    private void useHiveMqLocal() {
-//        final String host = "172.27.154.209";
-//
-//        //create an MQTT client
-//        final Mqtt3BlockingClient client = MqttClient.builder()
-//                .useMqttVersion3()
-//                .serverHost(host)
-//                .serverPort(1883)
-//                .buildBlocking();
-//
-//        //connect to HiveMQ Cloud with TLS and username/pw
-//        client.connectWith()
-//                .send();
-//
-//        System.out.println("Connected successfully");
-//
-//        //subscribe to the topic "my/test/topic"
-//        client.subscribeWith()
-//                .topicFilter("temi-data")
-//                .send();
-//
-//        // set a callback that is called when a message is received (using the async API style)
-//        client.toAsync().publishes(ALL, publish -> {
-//            String payload = UTF_8.decode(publish.getPayload().get()).toString();
-//
-//            if(payload.equals("invoke")) {
-//                Log.d(TAG, "messageArrived: Received message for invoke");
-//                robot.goTo("whiteboard 225");
-//            }
-//            //disconnect the client after a message was received
-////            client.disconnect();
-//        });
-//    }
 }
