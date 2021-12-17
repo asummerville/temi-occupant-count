@@ -293,13 +293,12 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
 
     // schedules the process at a certain interval (30 min-1 hr?)
     private void scheduledCall() {
-
         // the task
         TimerTask scheduledTask = new Task();
         // create timer
         Timer timer = new Timer();
         // schedule
-        timer.schedule(scheduledTask, 100, 1800000); // 180k milliseconds = 30 min
+        timer.schedule(scheduledTask, 100, 1800000); // 1.8mil milliseconds = 30 min
 
     }
 
