@@ -34,6 +34,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
@@ -65,7 +67,7 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
 
     private static final String subscriptionTopic = "temi-data";
 
-    // tablet UI for testing purposes or manual execution
+    // init type method -- creates tablet UI for testing purposes/ manual execution
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -126,6 +128,8 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
                     sendImage(imageFile);
 
                     // move temi to its initial location
+                    // only run this if it's the last room...
+
                     robot.goTo(initialLocationName);
                 }
             }
@@ -134,7 +138,8 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
         registerReceiver(updateUIReceiver, filter);
 
         // ***this is where the lambda listener method was -- have to create some method that automates/schedules the process
-        scheduledCall();
+        // scheduledCall(); // uncomment when scheduled system is desired
+
     }
 
 
@@ -143,7 +148,7 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
         imageView.setImageBitmap(myBitmap);
     }
 
-    // send/save image
+    // send/save image -- might not need
     private void sendImage(File file) {
         try {
             // save img to filesystem (specific folder -- currently just save as Pictures/image.jpg)?
@@ -164,7 +169,7 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
         robot.removeOnRobotReadyListener(this);
     }
 
-    // main method: gets iaq locations, runs 'moveAndClickPicture' method with UI inputs
+    // main method for tablet UI testing: gets iaq locations, runs 'moveAndClickPicture' method with UI inputs
     @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
     public void onRobotReady(boolean isReady) {
@@ -195,15 +200,11 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
                 int cameraId = cameraSpinner.getSelectedItemPosition();
                 moveAndClickPicture(selectedLocation, angle, cameraId);
 
-                // run for all iaq locations
-//                for (String location: conferenceLocs) {
-//                    moveAndClickPicture(location, angle, cameraId);
-//                }
-
             }
         });
     }
 
+    // main method to complete the task of moving to a location and taking a photo
     // cameraId: regular lens = 0, wide angle = 1
     private void moveAndClickPicture(String location, int headAngle, int cameraId) {
         // ensures that the broadcast message sent from the camera service is received
@@ -290,13 +291,22 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
         startService(cameraServiceIntent);
     }
 
-    // ***fill
+    // schedules the process at a certain interval (30 min-1 hr?)
     private void scheduledCall() {
-        // scheduled call of the method (every 30 min-1 hr) that captures every iaq location
-        // not sure the best way to do this -- might have to use some async API
 
-        // *use some async API/listener that when true runs the below code
+        // the task
+        TimerTask scheduledTask = new Task();
+        // create timer
+        Timer timer = new Timer();
+        // schedule
+        timer.schedule(scheduledTask, 100, 1800000); // 180k milliseconds = 30 min
 
+    }
+
+    // class with the desired task to be completed by the scheduledCall method
+    class Task extends TimerTask {
+        @Override
+        public void run() {
             // get the list of iaq locations from the robot
             List<String> locations = robot.getLocations();
             List<String> conferenceLocs = new ArrayList<>();
@@ -309,13 +319,11 @@ public class MainActivity extends AppCompatActivity implements OnRobotReadyListe
             Log.v(TAG, "locations = " + conferenceLocs);
 
             // run for all iaq locations
-            for (String location: conferenceLocs) {
+            for (String location : conferenceLocs) {
                 moveAndClickPicture(location, 18, 1); // change angle
             }
-
-
+        }
     }
-
 
 
 }
